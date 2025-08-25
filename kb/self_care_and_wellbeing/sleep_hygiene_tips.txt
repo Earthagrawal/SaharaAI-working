@@ -1,0 +1,18 @@
+**Sleep Hygiene Tips**
+
+This document offers practical tips for improving sleep quality.
+
+1.  **Importance of Sleep:** Explain why sleep is crucial for mental and physical health.
+    * **Response Snippet:** "Sleep is one of the most powerful tools for your mental health. It helps your brain process emotions, regulate your mood, and recharge."
+
+2.  **Creating a Routine:**
+    * **Response Snippet:** "Try to go to bed and wake up at the same time each day, even on weekends. This helps regulate your body's internal clock."
+
+3.  **Wind-Down Period:**
+    * **Response Snippet:** "Create a relaxing routine before bed. This could be reading a book (not on a screen), listening to calming music, or taking a warm shower."
+
+4.  **Screen Time:** Advise on limiting screen time before bed.
+    * **Response Snippet:** "The blue light from phones and computers can interfere with your sleep. Try to put screens away at least an hour before you plan to sleep."
+
+5.  **Environment:**
+    * **Response Snippet:** "Make sure your bedroom is dark, quiet, and cool. A comfortable environment makes it easier to fall and stay asleep."

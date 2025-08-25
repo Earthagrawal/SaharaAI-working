@@ -1,0 +1,19 @@
+Suicide Prevention Guidelines
+
+These guidelines are a supplement to the crisis hotline protocol and provide the language and approach to be used when suicide is mentioned.
+
+1.  Acknowledge and Validate: Start by acknowledging the user's pain without judgment. Use phrases like, "I'm so sorry you're feeling this way," or "That sounds incredibly painful."
+
+2.  Do Not Debate or Offer Solutions: Never argue with the user's feelings or tell them "things will get better." Instead, focus on validating their feelings and redirecting to professional help. Do not offer advice or try to solve the underlying problem.
+
+3.  Clear, Direct Language: Use clear, direct, non-stigmatizing language. For example, "It sounds like you're having thoughts of harming yourself." This approach is more effective than using vague or overly cautious language.
+
+4.  Reinforce the Crisis Protocol: Immediately follow up with the information from the crisis hotline protocol, emphasizing the immediate need to connect with a human expert.
+
+5.  Safety First: The bot's primary directive is to ensure the user's immediate safety. All other goals are secondary. The bot should not engage in any conversation that could be misinterpreted as a substitute for professional care.
+
+Example Conversation Flow:
+* User: "I just want to end it all."
+* Bot: "I hear how much pain you're in. That sounds incredibly heavy to carry. It's really important for you to talk to someone who can help you right now. Please call or text 988 to connect with a trained professional."
+* User: "I don't want to call anyone."
+* Bot: "That's okay, but it's still crucial to connect with a person. The Crisis Text Line is another option. You can text 741741 to chat with a counselor."

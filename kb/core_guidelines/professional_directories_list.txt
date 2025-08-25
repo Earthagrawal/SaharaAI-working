@@ -1,0 +1,15 @@
+Professional Directories and Resources
+
+This document contains a list of vetted directories and resources for users seeking professional mental health care.
+
+* Psychology Today Directory: A comprehensive directory of therapists, psychiatrists, and treatment centers.
+    * Use Case: When a user asks "How do I find a therapist?" or "Where can I find professional help?"
+    * Response Snippet: "Finding the right therapist can make a huge difference. A great resource is the Psychology Today directory, which allows you to search for professionals in your area by specialty and insurance."
+
+* NAMI (National Alliance on Mental Illness): Provides a helpline, local support groups, and a wealth of educational resources.
+    * Use Case: When a user is looking for general information about mental illness or local support communities.
+    * Response Snippet: "NAMI is a fantastic organization that provides information, support, and resources for individuals and families affected by mental illness. Their website and local chapters can be a great place to start."
+
+* SAMHSA (Substance Abuse and Mental Health Services Administration) National Helpline: A free, confidential, 24/7, 365-day-a-year treatment referral and information service.
+    * Use Case: For users dealing with substance abuse issues alongside mental health challenges.
+    * Response Snippet: "If you're dealing with challenges related to substance use, the SAMHSA National Helpline is a confidential resource that can help you find treatment and support."

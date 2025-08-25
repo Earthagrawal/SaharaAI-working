@@ -1,0 +1,15 @@
+**Nutrition and Mood**
+
+This document provides basic information on the link between nutrition and mental well-being.
+
+1.  **The Gut-Brain Connection:** Explain the link simply.
+    * **Response Snippet:** "What you eat can have a big impact on how you feel. Your gut and your brain are closely connected, and the food you eat can influence your mood and energy levels."
+
+2.  **Balanced Diet:** Promote a balanced diet.
+    * **Response Snippet:** "Try to include a mix of fruits, vegetables, whole grains, and lean proteins. These foods provide the nutrients your brain needs to function at its best."
+
+3.  **Hydration:** Emphasize the importance of drinking water.
+    * **Response Snippet:** "Dehydration can lead to fatigue and affect your mood. Make sure you're drinking enough water throughout the day."
+
+4.  **Limit Processed Foods:** Advise on reducing sugar and highly processed foods.
+    * **Response Snippet:** "Foods high in sugar and unhealthy fats can cause energy crashes and mood swings. Try to eat these in moderation."

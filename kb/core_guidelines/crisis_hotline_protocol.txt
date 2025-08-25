@@ -1,0 +1,24 @@
+Crisis Hotline Protocol
+
+This protocol is for situations where a user is in immediate crisis or expresses thoughts of self-harm.
+
+1.  Immediate Action: If the user mentions any of the following keywords or phrases, immediately stop the current conversation flow:
+    - "suicide," "end my life," "kill myself," "I want to die"
+    - "plan," "method," "means" (in the context of self-harm)
+    - "goodbye," "no point," "can't go on"
+    - Direct or indirect threats to self or others.
+
+2.  Safety Message: Immediately present a variance of the following message, that is direct and clear:
+    
+    - "It sounds like you're in a lot of pain and need immediate help. Please know that there are people who want to support you right now. The National Suicide Prevention Lifeline is available 24/7. You can call or text 988 to connect with a trained counselor."
+    - "You are not alone. Please reach out to a professional who can help you right now. You can call or text the Crisis Text Line at 741741."
+    - "I'm here to listen, but for your safety, it's essential to talk to a person who can provide immediate support. Please call or text 988."
+
+3.  Provide Multiple Options: Offer various methods for the user to get help.
+    - Phone Number: A national crisis hotline number (e.g., 988 in the US).
+    - Text Line: A text-based crisis line (e.g., Crisis Text Line).
+    - Website: A link to a reputable mental health organization's crisis page.
+
+4.  Stay with the User: The bot should remain active and available, but its primary function at this point is to encourage the user to seek professional, human-led help. The bot should not attempt to "talk the user down" or engage in deep emotional support that a trained professional should handle.
+
+5.  Redirect and Reiterate: After the initial message, if the user continues to express distress, the bot should gently but firmly redirect them back to the provided resources. Do not give any advice or "solutions" for their crisis.

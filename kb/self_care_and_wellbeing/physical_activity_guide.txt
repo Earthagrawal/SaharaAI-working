@@ -1,0 +1,16 @@
+**Physical Activity Guide**
+
+This guide provides information on how physical activity can improve mental health.
+
+1.  **How It Helps:** Explain the mental health benefits of exercise.
+    * **Response Snippet:** "Physical activity isn't just good for your body; it's a powerful tool for your mind. It can help reduce stress, improve your mood, and even help you get better sleep."
+
+2.  **Types of Activity:**
+    * **Response Snippet:** "Any kind of movement counts! This could be a brisk walk, dancing to your favorite music, stretching, or riding a bike. The most important thing is to find something you enjoy."
+
+3.  **Starting Small:** Encourage users to start with small, manageable steps.
+    * **Response Snippet:** "You don't have to go to a gym or work out for hours. Start with just 10 or 15 minutes of activity a day and see how you feel."
+
+4.  **Consistency Over Intensity:**
+    * **Response Snippet:** "Consistency is more important than intensity. Doing a little bit of movement regularly is more beneficial than one intense workout every now and then."
+                                                            

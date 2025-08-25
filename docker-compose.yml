@@ -1,0 +1,53 @@
+services:
+  redis:
+    image: redis/redis-stack:7.2.0-v9
+    ports:
+      - "6379:6379"
+      - "8001:8001"
+    volumes:
+      - redis-data:/data
+
+  backend:
+    build: ./backend
+    environment:
+      - APP_ENV=${APP_ENV}
+      - MOCK_MODE=${MOCK_MODE}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_VECTOR_DIM=${REDIS_VECTOR_DIM}
+      - RETRIEVAL_TOP_K=${RETRIEVAL_TOP_K}
+      - MAX_OUTPUT_TOKENS=${MAX_OUTPUT_TOKENS}
+      - LLM_CONTEXT_TURNS=${LLM_CONTEXT_TURNS}
+      - SESSION_TTL_MIN=${SESSION_TTL_MIN}
+      - PROMETHEUS_SCRAPE=${PROMETHEUS_SCRAPE}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - VERTEX_MODEL=${VERTEX_MODEL}
+      - VERTEX_EMBEDDING_MODEL=${VERTEX_EMBEDDING_MODEL}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
+      - KB_PATH=/kb
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    volumes:
+      - ./kb:/kb:ro
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+  admin:
+    build: ./backend
+    entrypoint: ["python", "scripts/create_index.py"]
+    environment:
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_VECTOR_DIM=${REDIS_VECTOR_DIM}
+    depends_on:
+      - redis
+
+volumes:
+  redis-data:
+
+

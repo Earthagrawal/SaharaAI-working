@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+
+/* Animated gradient background */
+body {
+  background: radial-gradient(1200px 800px at 10% 10%, rgba(56,189,248,0.15), transparent),
+              radial-gradient(1000px 800px at 90% 20%, rgba(129,140,248,0.15), transparent),
+              radial-gradient(800px 800px at 20% 80%, rgba(16,185,129,0.14), transparent);
+  animation: floatBg 18s ease-in-out infinite alternate;
+}
+
+@keyframes floatBg {
+  0% { background-position: 0% 0%, 100% 20%, 20% 80%; }
+  100% { background-position: 10% 5%, 90% 25%, 25% 85%; }
+}
+
+.glass {
+  background: rgba(255,255,255,0.66);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.btn {
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+}
+.btn:active { transform: translateY(1px) scale(0.99); }
+.btn:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+
+

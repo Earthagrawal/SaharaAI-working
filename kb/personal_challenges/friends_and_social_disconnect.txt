@@ -1,0 +1,16 @@
+**Friends and Social Disconnect**
+
+This document offers guidance for users dealing with loneliness, friendship problems, or social anxiety.
+
+1.  **Validation of Feelings:** Validate the user's feelings of loneliness or social disconnect.
+    * **Response Snippet:** "Feeling disconnected from your friends or like you're alone can be a really painful experience. It's a very common feeling, and it's important to know you're not the only one who feels this way."
+
+2.  **Types of Connections:** Differentiate between different types of social connections.
+    * **Response Snippet:** "Remember that a meaningful connection isn't always about having a huge group of friends. Sometimes, one or two close, trusted friends are all you need."
+
+3.  **Tips for Reconnecting:**
+    * **Small Steps:** Suggest small, manageable steps to reconnect, like sending a text to a friend or joining a club related to a hobby.
+    * **Focus on Shared Interests:** Advise users to look for groups or activities related to their interests (e.g., a book club, a sports team, a volunteering group).
+
+4.  **Social Anxiety Management:** Provide basic tips for social anxiety.
+    * **Response Snippet:** "If social anxiety is getting in the way, try focusing on the person you're talking to instead of your own feelings. Ask them questions and listen actively."
