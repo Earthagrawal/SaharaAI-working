@@ -1,14 +1,32 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#38bdf8" />
+    <meta name="description" content="Sahara: Empathetic, confidential youth mental wellness assistant. Accessible, secure, and beautiful." />
+    <meta name="keywords" content="mental health, youth, wellness, AI, chatbot, Sahara" />
+    <meta name="author" content="Sahara Team" />
+    <meta property="og:title" content="Sahara Youth Mental Wellness" />
+    <meta property="og:description" content="Empathetic, confidential youth mental wellness assistant." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:url" content="/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>Sahara Youth Mental Wellness</title>
+    <style>
+      html { background: #f8fafc; }
+      body { min-height: 100vh; font-family: 'Inter', system-ui, sans-serif; }
+    </style>
   </head>
-  <body>
-    <div id="root"></div>
+  <body class="antialiased bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+    <a href="#main-content" class="sr-only focus:not-sr-only absolute top-0 left-0 bg-sky-600 text-white px-4 py-2 z-50">Skip to main content</a>
+    <main id="main-content" aria-label="Main content">
+      <div id="root"></div>
+    </main>
     <script type="module" src="/src/main.tsx"></script>
   </body>
-  </html>
+</html>
 
 

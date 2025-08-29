@@ -1,238 +1,358 @@
-import React from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { createTodo, deleteTodo, listTodos, sendTurn, updateTodo } from './api'
-import { AnimatePresence, motion } from 'framer-motion'
+
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import './index.css';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createTodo, deleteTodo, listTodos, sendTurn, updateTodo } from './api';
+import { AnimatePresence, motion } from 'framer-motion';
+
+
+// MSW mock mode support
+if ((import.meta as any).env.VITE_MOCK_MODE === 'true') {
+  import('./mockWorker').then(({ worker }) => worker.start());
+}
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useUIStore } from './store';
+import { ChatBubble } from './components/ChatBubble';
+import { Composer } from './components/Composer';
+import { TodoPanel } from './components/TodoPanel';
+import { AudioPlayer } from './components/AudioPlayer';
+import { SentimentChip } from './components/SentimentChip';
+import { Toast } from './components/Toast';
+import { DebugPanel } from './components/DebugPanel';
+import { SettingsModal } from './components/SettingsModal';
+import { Mic, Camera } from 'lucide-react';
+import { OutputEnvelope, TodoItem, Signals } from './types';
+import { v4 as uuidv4 } from 'uuid';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from './axios';
+
+const queryClient = new QueryClient();
+
+
+
+
 
 function App() {
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string; audio?: string | null }[]>([])
-  const [text, setText] = useState('')
-  const [lang, setLang] = useState('en')
-  const [outputMode, setOutputMode] = useState<'text'|'audio'>('text')
-  const [todos, setTodos] = useState<any[]>([])
-  const [rec, setRec] = useState<MediaRecorder | null>(null)
-  const [recording, setRecording] = useState(false)
-  const [recStart, setRecStart] = useState<number | null>(null)
-  const [showSettings, setShowSettings] = useState(false)
-  const [showCamera, setShowCamera] = useState(false)
-  const [theme, setTheme] = useState<'light'|'dark'>(() => (localStorage.getItem('theme') as 'light'|'dark') || 'light')
-  const chunks = useRef<Blob[]>([])
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [imageData, setImageData] = useState<string | null>(null)
+  // UI state
+  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string; audio?: string | null; signals?: Signals; ts?: string }>>([]);
+  const [text, setText] = useState('');
+  const [lang, setLang] = useState((window as any).VITE_DEFAULT_LANG || 'en');
+  const [outputMode, setOutputMode] = useState<'text' | 'audio'>('text');
+  const [showSettings, setShowSettings] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [imageData, setImageData] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type?: 'success' | 'error' | 'info' } | null>(null);
+  const [debug, setDebug] = useState<{ req: any; res: any; reqId?: string } | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [recStart, setRecStart] = useState<number | null>(null);
+  const [rec, setRec] = useState<MediaRecorder | null>(null);
+  const chunks = useRef<Blob[]>([]);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('theme') as 'light' | 'dark') || 'light');
 
-  useEffect(() => { listTodos().then(setTodos).catch(() => {}) }, [])
+  // Todo state
+  const { data: todos = [], refetch: refetchTodos } = useQuery<TodoItem[]>({
+    queryKey: ['todos'],
+    queryFn: async () => (await api.get('/todo')).data,
+  });
+  const queryClient = useQueryClient();
 
-  const recSeconds = useMemo(() => recStart ? Math.floor((Date.now() - recStart)/1000) : 0, [recStart, recording, text])
+  // Hero section state
+  const [showHero, setShowHero] = useState(() => messages.length === 0);
 
-  async function send(payloadOverride?: any) {
-    const contentToSend = payloadOverride?.content ?? text
-    const audioB64 = payloadOverride?.audio_base64
-    const imageB64 = payloadOverride?.image_base64
-    if (!contentToSend && !audioB64 && !imageB64) return
-    if (contentToSend) setMessages((m) => [...m, { role: 'user', content: contentToSend }])
-    setText('')
-    const res = await sendTurn({ session_id: 's1', content: contentToSend, audio_base64: audioB64, image_base64: imageB64, lang_hint: lang, output_mode: outputMode })
-    setMessages((m) => [...m, { role: 'assistant', content: res.llm_output.text, audio: res.audio_ref }])
-  }
+  // Hide hero on first message
+  useEffect(() => {
+    if (messages.length > 0) setShowHero(false);
+  }, [messages.length]);
 
-  async function startRec(pressHold=false) {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    const mr = new MediaRecorder(stream)
-    chunks.current = []
-    mr.ondataavailable = (e) => chunks.current.push(e.data)
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        send();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        document.querySelector<HTMLInputElement>('input[aria-label="Message"]')?.focus();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        document.getElementById('todo-panel')?.scrollIntoView({ behavior: 'smooth' });
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+        e.preventDefault();
+        setShowSettings(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // Theme
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  // Recording logic
+  const recSeconds = useMemo(() => (recStart ? Math.floor((Date.now() - recStart) / 1000) : 0), [recStart, recording, text]);
+  async function startRec(pressHold = false) {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mr = new MediaRecorder(stream);
+    chunks.current = [];
+    mr.ondataavailable = (e) => chunks.current.push(e.data);
     mr.onstop = async () => {
-      const blob = new Blob(chunks.current, { type: 'audio/webm' })
-      const buf = await blob.arrayBuffer()
-      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)))
-      await send({ content: '[voice]', audio_base64: b64 })
-      setRecStart(null)
-    }
-    mr.start()
-    setRec(mr)
-    setRecording(true)
-    setRecStart(Date.now())
+      const blob = new Blob(chunks.current, { type: 'audio/webm' });
+      const buf = await blob.arrayBuffer();
+      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      await send({ content: '[voice]', audio_base64: b64 });
+      setRecStart(null);
+    };
+    mr.start();
+    setRec(mr);
+    setRecording(true);
+    setRecStart(Date.now());
     if (!pressHold) {
-      setTimeout(() => { if (mr.state !== 'inactive') { mr.stop(); setRecording(false) } }, 60000)
+      setTimeout(() => {
+        if (mr.state !== 'inactive') {
+          mr.stop();
+          setRecording(false);
+        }
+  }, Number((window as any).VITE_RECORD_MAX_SECONDS || 60) * 1000);
     }
   }
-  function stopRec() { if (rec && rec.state !== 'inactive') { rec.stop(); setRecording(false) } }
-  function cancelRec() { if (rec && rec.state !== 'inactive') { rec.stop(); } setRecording(false); setRecStart(null); chunks.current = [] }
+  function stopRec() {
+    if (rec && rec.state !== 'inactive') {
+      rec.stop();
+      setRecording(false);
+    }
+  }
+  function cancelRec() {
+    if (rec && rec.state !== 'inactive') {
+      rec.stop();
+    }
+    setRecording(false);
+    setRecStart(null);
+    chunks.current = [];
+  }
 
+  // Camera logic
   async function openCamera() {
-    setShowCamera(true)
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-    if (videoRef.current) videoRef.current.srcObject = stream
+    setShowCamera(true);
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    if (videoRef.current) videoRef.current.srcObject = stream;
   }
   function takeSnapshot() {
-    if (!videoRef.current) return
-    const video = videoRef.current
-    const canvas = document.createElement('canvas')
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    const ctx = canvas.getContext('2d')!
-    ctx.drawImage(video, 0, 0)
-    const data = canvas.toDataURL('image/png').split(',')[1]
-    setImageData(data)
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(video, 0, 0);
+    const data = canvas.toDataURL('image/png').split(',')[1];
+    setImageData(data);
   }
   function closeCamera() {
     if (videoRef.current && videoRef.current.srcObject) {
-      ;(videoRef.current.srcObject as MediaStream).getTracks().forEach(t=>t.stop())
+      (videoRef.current.srcObject as MediaStream).getTracks().forEach((t) => t.stop());
     }
-    setShowCamera(false)
+    setShowCamera(false);
   }
 
-  useEffect(()=>{
-    document.documentElement.classList.toggle('dark', theme==='dark')
-    localStorage.setItem('theme', theme)
-  }, [theme])
+  // Message send logic
+  async function send(payloadOverride?: any) {
+    const contentToSend = payloadOverride?.content ?? text;
+    const audioB64 = payloadOverride?.audio_base64;
+    const imageB64 = payloadOverride?.image_base64;
+    if (!contentToSend && !audioB64 && !imageB64) return;
+    if (contentToSend) setMessages((m) => [...m, { role: 'user', content: contentToSend, ts: new Date().toISOString() }]);
+    setText('');
+    try {
+      const req = { session_id: 's1', content: contentToSend, audio_base64: audioB64, image_base64: imageB64, lang_hint: lang, output_mode: outputMode };
+      const res = await api.post<OutputEnvelope>('/turn', req);
+      setMessages((m) => [
+        ...m,
+        {
+          role: 'assistant',
+          content: res.data.llm_output.text,
+          audio: res.data.audio_ref,
+          signals: res.data.llm_output as any, // For demo, signals can be improved
+          ts: new Date().toISOString(),
+        },
+      ]);
+      setDebug({ req, res: res.data, reqId: res.headers['x-request-id'] });
+    } catch (e: any) {
+      setToast({ message: e?.message || 'Error sending message', type: 'error' });
+    }
+  }
 
-  function privacyClear() { setMessages([]); localStorage.removeItem('sahara_msgs') }
-  useEffect(()=>{ const saved = localStorage.getItem('sahara_msgs'); if(saved) setMessages(JSON.parse(saved)) }, [])
-  useEffect(()=>{ localStorage.setItem('sahara_msgs', JSON.stringify(messages)) }, [messages])
+  // Todo handlers
+  async function handleCreateTodo(title: string, priority?: number) {
+    await api.post('/todo', { title, priority });
+  queryClient.invalidateQueries({ queryKey: ['todos'] });
+    setToast({ message: 'Todo added', type: 'success' });
+  }
+  async function handleUpdateTodo(id: string, data: Partial<TodoItem>) {
+    await api.patch(`/todo/${id}`, data);
+  queryClient.invalidateQueries({ queryKey: ['todos'] });
+    setToast({ message: 'Todo updated', type: 'success' });
+  }
+  async function handleDeleteTodo(id: string) {
+    await api.delete(`/todo/${id}`);
+  queryClient.invalidateQueries({ queryKey: ['todos'] });
+    setToast({ message: 'Todo deleted', type: 'success' });
+  }
+  async function handleSnooze(id: string, hours: number) {
+    const due = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+    await api.patch(`/todo/${id}`, { due });
+  queryClient.invalidateQueries({ queryKey: ['todos'] });
+    setToast({ message: `Snoozed for ${hours}h`, type: 'info' });
+  }
+
+  // Privacy clear
+  function privacyClear() {
+    setMessages([]);
+    localStorage.removeItem('sahara_msgs');
+    setToast({ message: 'Conversation cleared', type: 'info' });
+  }
+
+  // Persist messages
+  useEffect(() => {
+    const saved = localStorage.getItem('sahara_msgs');
+    if (saved) setMessages(JSON.parse(saved));
+  }, []);
+  useEffect(() => {
+    localStorage.setItem('sahara_msgs', JSON.stringify(messages));
+  }, [messages]);
 
   return (
-    <div className="min-h-screen grid grid-rows-[auto,1fr] text-slate-800">
-      <header className="glass flex items-center justify-between px-4 py-3 border-b border-white/40 sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <div className="text-xl font-semibold">
-            <span className="inline-block bg-gradient-to-r from-sky-500 via-indigo-500 to-emerald-500 bg-clip-text text-transparent">Sahara</span>
-          </div>
-          <span className="text-sm text-slate-500" aria-label="session-label">Session: s1</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="btn px-3 py-1 rounded border bg-white/70" onClick={()=>setShowSettings(true)} aria-haspopup="dialog" aria-controls="settings-modal">Settings</button>
-          <button className="btn px-3 py-1 rounded border bg-white/70" onClick={()=>setTheme(theme==='dark'?'light':'dark')} title="Toggle theme">{theme==='dark'?'Light':'Dark'}</button>
-          <button className="btn px-3 py-1 rounded border bg-white/70" onClick={privacyClear} title="Clear local conversation">Privacy</button>
-        </div>
-      </header>
-      <main className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
-        <section className="md:col-span-2 flex flex-col rounded-xl shadow glass">
-          <div className="p-3 border-b flex flex-wrap gap-2 items-center">
-            <select aria-label="Language" className="border rounded px-2 py-1" value={lang} onChange={e=>setLang(e.target.value)}>
-              <option value="en">English</option>
-              <option value="hi">Hindi</option>
-            </select>
-            <select aria-label="Output mode" className="border rounded px-2 py-1" value={outputMode} onChange={e=>setOutputMode(e.target.value as any)}>
-              <option value="text">Text</option>
-              <option value="audio">Audio</option>
-            </select>
-            <button className="btn px-3 py-1 rounded border" onClick={openCamera}>Camera</button>
-          </div>
-          <div className="flex-1 overflow-auto p-4 space-y-3" role="log" aria-live="polite">
-            <AnimatePresence initial={false}>
-              {messages.map((m, i) => (
-                <motion.div key={i}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.18 }}
-                  className={m.role === 'user' ? 'text-right' : ''}>
-                  <div className={`inline-block px-3 py-2 rounded-2xl shadow-sm ${m.role==='user'?'bg-sky-50/70':'bg-white/70'}`}>{m.content}</div>
-                  {m.audio && (
-                    <div>
-                      <audio controls src={m.audio}></audio>
-                      <a download={`sahara_${i}.mp3`} href={m.audio} className="text-xs text-slate-500">Download</a>
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-          <div className="p-4 border-t flex flex-wrap gap-2 items-center">
-            <input aria-label="Message" className="flex-1 border rounded px-3 py-2" value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter') send()}} placeholder="Type your message..." />
-            <button className="btn px-3 py-2 rounded bg-sky-600 text-white" onClick={()=>send()}>Send</button>
-            {!recording ? (
-              <>
-                <button className="btn px-3 py-2 rounded bg-emerald-600 text-white" onMouseDown={()=>startRec(true)} onMouseUp={stopRec} onKeyDown={(e)=>{if(e.key==='Enter'||e.key===' '){startRec(true)}}} onKeyUp={(e)=>{if(e.key==='Enter'||e.key===' '){stopRec()}}} aria-pressed={recording}>Hold to Rec</button>
-                <button className="btn px-3 py-2 rounded bg-emerald-700 text-white" onClick={()=>startRec(false)} aria-pressed={recording}>Toggle Rec</button>
-              </>
-            ) : (
-              <>
-                <span aria-live="polite" className="text-sm">Recording... {recSeconds}s</span>
-                <button className="btn px-3 py-2 rounded bg-red-600 text-white" onClick={stopRec}>Stop</button>
-                <button className="btn px-3 py-2 rounded bg-slate-500 text-white" onClick={cancelRec}>Cancel</button>
-              </>
-            )}
-          </div>
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-sky-200 via-indigo-200 to-emerald-100 text-slate-800">
+      {/* Floating animated shapes for legendary background */}
+      <div className="floating-bg">
+        <div className="float-shape float-shape1"></div>
+        <div className="float-shape float-shape2"></div>
+        <div className="float-shape float-shape3"></div>
+      </div>
+      {/* Legendary Hero Section */}
+      {showHero && (
+        <section className="hero fade-in">
+          <h1 className="hero-title">Sahara: Youth Mental Wellness</h1>
+          <p className="hero-desc">Empathetic, confidential support for your mental wellness journey. Sahara listens, understands, and guides you—anytime, anywhere.</p>
+          <button className="btn px-8 py-3 text-lg shadow-xl" onClick={() => setShowHero(false)}>Start Chatting</button>
         </section>
-        <aside className="md:col-span-1 rounded-xl shadow glass flex flex-col" aria-label="Todo panel">
-          <div className="p-4 border-b font-semibold">Todo</div>
-          <div className="p-4 space-y-2 overflow-auto">
-            {todos.map(t => (
-              <motion.div key={t.id} className="border rounded p-2 flex items-center gap-2 bg-white/70"
-                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y:0 }}>
-                <input aria-label={`mark ${t.title} done`} type="checkbox" checked={!!t.done} onChange={async e=>{const u=await updateTodo(t.id,{done:e.target.checked}); setTodos(prev=>prev.map(x=>x.id===t.id?u:x))}} />
-                <div className="flex-1">
-                  <div className={t.done? 'line-through' : ''}>{t.title}</div>
-                  {t.priority ? <div className="text-xs text-slate-500">Priority {t.priority}</div> : null}
-                </div>
-                <button className="btn text-sm text-slate-600" onClick={async ()=>{const u=await updateTodo(t.id,{priority:(t.priority||0)+1}); setTodos(prev=>prev.map(x=>x.id===t.id?u:x))}}>+P</button>
-                <button className="btn text-sm text-slate-600" onClick={async ()=>{const due=new Date(Date.now()+24*60*60*1000).toISOString(); const u=await updateTodo(t.id,{due}); setTodos(prev=>prev.map(x=>x.id===t.id?u:x))}}>Snooze</button>
-                <button className="btn text-sm text-red-600" onClick={async ()=>{await deleteTodo(t.id); setTodos(prev=>prev.filter(x=>x.id!==t.id))}}>Delete</button>
-              </motion.div>
-            ))}
-            <form onSubmit={async e=>{e.preventDefault(); const fd=new FormData(e.currentTarget as HTMLFormElement); const title=fd.get('title') as string; if(!title) return; const priority = Number(fd.get('priority')||0)||undefined; const n=await createTodo({title, priority}); setTodos(prev=>[...prev,n]); (e.currentTarget as HTMLFormElement).reset()}} className="grid grid-cols-5 gap-2">
-              <input name="title" placeholder="Add task" className="col-span-3 border rounded px-2 py-1" />
-              <input name="priority" placeholder="P" className="col-span-1 border rounded px-2 py-1" />
-              <button className="btn col-span-1 px-2 py-1 rounded bg-slate-800 text-white">Add</button>
-            </form>
-          </div>
-        </aside>
-      </main>
-
-      {showSettings && (
-        <div id="settings-modal" role="dialog" aria-modal="true" className="fixed inset-0 bg-black/40 flex items-center justify-center p-4" onClick={()=>setShowSettings(false)}>
-          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="glass rounded-xl shadow p-4 w-full max-w-md" onClick={e=>e.stopPropagation()}>
-            <div className="text-lg font-semibold mb-2">Settings</div>
-            <div className="space-y-2">
-              <label className="block text-sm">Default language
-                <select className="block w-full border rounded px-2 py-1 mt-1" value={lang} onChange={e=>setLang(e.target.value)}>
+      )}
+      {/* Main App Layout */}
+      {!showHero && (
+        <>
+          <header className="glass flex items-center justify-between px-6 py-4 border-b border-white/40 sticky top-0 z-10 soft-shadow">
+            <div className="flex items-center gap-4">
+              <div className="text-2xl font-extrabold tracking-tight hero-title">Sahara</div>
+              <span className="text-sm text-slate-500" aria-label="session-label">Session: s1</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="btn" onClick={() => setShowSettings(true)} aria-haspopup="dialog" aria-controls="settings-modal">Settings</button>
+              <button className="btn" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title="Toggle theme">{theme === 'dark' ? 'Light' : 'Dark'}</button>
+              <button className="btn" onClick={privacyClear} title="Clear local conversation">Privacy</button>
+            </div>
+          </header>
+          <main className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-8 p-6">
+            {/* Chat Section */}
+            <section className="md:col-span-2 flex flex-col rounded-3xl glass soft-shadow p-0 overflow-hidden">
+              <div className="flex flex-wrap gap-3 items-center px-6 py-4 border-b border-white/30 bg-white/60">
+                <select aria-label="Language" className="border rounded px-2 py-1" value={lang} onChange={e => setLang(e.target.value)}>
                   <option value="en">English</option>
                   <option value="hi">Hindi</option>
                 </select>
-              </label>
-              <label className="block text-sm">Default output mode
-                <select className="block w-full border rounded px-2 py-1 mt-1" value={outputMode} onChange={e=>setOutputMode(e.target.value as any)}>
+                <select aria-label="Output mode" className="border rounded px-2 py-1" value={outputMode} onChange={e => setOutputMode(e.target.value as 'text' | 'audio')}>
                   <option value="text">Text</option>
                   <option value="audio">Audio</option>
                 </select>
-              </label>
+                <button className="btn-icon" onClick={openCamera} aria-label="Open camera" title="Open camera"><Camera className="w-6 h-6" /></button>
+              </div>
+              <div className="flex-1 overflow-auto px-6 py-4 space-y-4 bg-gradient-to-br from-white/80 via-sky-50 to-emerald-50" role="log" aria-live="polite">
+                <AnimatePresence initial={false}>
+                  {messages.map((m, i) => (
+                    <ChatBubble
+                      key={i}
+                      role={m.role}
+                      content={m.content}
+                      audio={m.audio}
+                      signals={m.signals}
+                      timestamp={m.ts}
+                      onCopy={() => { navigator.clipboard.writeText(m.content); setToast({ message: 'Copied', type: 'info' }); }}
+                      onReply={() => setText(m.content)}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+              <div className="px-6 py-4 border-t border-white/30 bg-white/60 flex flex-wrap gap-3 items-center">
+                <Composer value={text} onChange={setText} onSend={send} />
+                <button
+                  className={`btn-icon mic-btn ${recording ? 'bg-emerald-600 text-white animate-pulse' : 'bg-white/80 text-emerald-600'}`}
+                  onClick={() => (recording ? stopRec() : startRec(false))}
+                  aria-label={recording ? 'Stop recording' : 'Start voice input'}
+                  title={recording ? 'Stop recording' : 'Start voice input'}
+                  style={{ borderRadius: '50%', width: 44, height: 44, fontSize: 0 }}
+                >
+                  <Mic className="w-6 h-6" />
+                </button>
+              </div>
+            </section>
+            {/* Todo Panel */}
+            <div id="todo-panel" className="md:col-span-1">
+              <TodoPanel
+                todos={todos}
+                onCreate={handleCreateTodo}
+                onUpdate={handleUpdateTodo}
+                onDelete={handleDeleteTodo}
+                onSnooze={handleSnooze}
+              />
             </div>
-            <div className="mt-4 text-right">
-              <button className="btn px-3 py-1 rounded border" onClick={()=>setShowSettings(false)}>Close</button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+          </main>
 
-      {showCamera && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/40 flex items-center justify-center p-4" onClick={closeCamera}>
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-xl shadow p-4 w-full max-w-2xl" onClick={e=>e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-lg font-semibold">Camera</div>
-              <button onClick={closeCamera} className="btn px-2 py-1 border rounded">Close</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <video ref={videoRef} autoPlay playsInline className="w-full rounded bg-black aspect-video" />
-              <div className="flex flex-col gap-2">
-                <button className="btn px-3 py-2 rounded bg-sky-600 text-white" onClick={takeSnapshot}>Snapshot</button>
-                {imageData && (
-                  <>
-                    <img className="rounded border" alt="snapshot" src={`data:image/png;base64,${imageData}`} />
-                    <button className="btn px-3 py-2 rounded bg-emerald-600 text-white" onClick={()=>{send({ content: '[image]', image_base64: imageData }); setImageData(null);}}>Send Image</button>
-                  </>
-                )}
+          {showSettings && (
+            <SettingsModal lang={lang} setLang={setLang} outputMode={outputMode} setOutputMode={setOutputMode} onClose={() => setShowSettings(false)} />
+          )}
+
+          {showCamera && (
+            <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/40 flex items-center justify-center p-4" onClick={closeCamera}>
+              <div className="glass rounded-2xl shadow-xl p-6 w-full max-w-2xl soft-shadow" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-lg font-semibold">Camera</div>
+                  <button onClick={closeCamera} className="btn px-2 py-1 border rounded">Close</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <video ref={videoRef} autoPlay playsInline className="w-full rounded bg-black aspect-video" />
+                  <div className="flex flex-col gap-3">
+                    <button className="btn bg-sky-600" onClick={takeSnapshot}>Snapshot</button>
+                    {imageData && (
+                      <>
+                        <img className="rounded border" alt="snapshot" src={`data:image/png;base64,${imageData}`} />
+                        <button className="btn bg-emerald-600" onClick={() => { send({ content: '[image]', image_base64: imageData }); setImageData(null); }}>Send Image</button>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </motion.div>
-        </div>
+          )}
+
+          {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+          {debug && <DebugPanel logs={[JSON.stringify(debug, null, 2)]} onClear={() => setDebug(null)} />}
+        </>
       )}
     </div>
-  )
+  );
 }
 
-const root = createRoot(document.getElementById('root')!)
-root.render(<App />)
+const root = createRoot(document.getElementById('root')!);
+root.render(
+  <QueryClientProvider client={queryClient}>
+    <App />
+  </QueryClientProvider>
+);
 
 
