@@ -1,4 +1,8 @@
-/* Icon button style for toolbar and composer */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Icon button style with enhanced animations */
 .btn-icon {
   display: inline-flex;
   align-items: center;
@@ -9,30 +13,48 @@
   width: 44px;
   height: 44px;
   font-size: 0;
-  transition: background 0.15s, box-shadow 0.15s, color 0.15s, transform 0.12s;
-  box-shadow: 0 2px 8px 0 rgba(56,189,248,0.10);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px 0 rgba(56,189,248,0.12);
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
 }
+
+.btn-icon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(56,189,248,0.12), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.btn-icon:hover::before {
+  opacity: 1;
+}
+
 .btn-icon:hover, .btn-icon:focus {
   background: rgba(56,189,248,0.08);
   color: #0ea5e9;
   outline: none;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(56,189,248,0.18);
 }
+
 .btn-icon:active {
   transform: scale(0.96);
 }
+
 .mic-btn.animate-pulse {
-  animation: pulseGlow 1.2s infinite;
+  animation: pulseGlow 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
 @keyframes pulseGlow {
-  0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.25); }
-  70% { box-shadow: 0 0 0 12px rgba(16,185,129,0.05); }
+  0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.35); }
+  50% { box-shadow: 0 0 0 12px rgba(16,185,129,0.0); }
   100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.0); }
 }
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 html, body, #root {
   height: 100%;
@@ -41,16 +63,94 @@ html, body, #root {
 
 body {
   min-height: 100vh;
-  background: linear-gradient(120deg, #38bdf8 0%, #818cf8 100%) fixed;
-  background-size: 200% 200%;
-  animation: bgMove 16s ease-in-out infinite alternate;
+  background: linear-gradient(120deg, #38bdf8 0%, #818cf8 50%, #14b8a6 100%) fixed;
+  background-size: 300% 300%;
+  animation: bgMove 24s ease-in-out infinite;
   color: #1e293b;
-  transition: background 0.4s, color 0.4s;
+  transition: all 0.4s ease;
 }
 
 html.dark body {
-  background: linear-gradient(120deg, #0f172a 0%, #334155 100%) fixed;
-  color: #f1f5f9;
+  background: #343541;
+  color: #ececf1;
+}
+
+/* Card / elevated surfaces for dark mode */
+html.dark .glass, html.dark .soft-shadow, html.dark .card, html.dark .modal {
+  background: #444654 !important;
+  color: #ececf1;
+  box-shadow: 0 4px 32px 0 rgba(0,0,0,0.2), 0 2px 8px 0 rgba(0,0,0,0.15);
+}
+
+html.dark .text-primary {
+  color: #ececf1 !important;
+}
+html.dark .text-secondary {
+  color: #c5c5d2 !important;
+}
+
+/* Accent gradient for buttons and highlights */
+.btn, .btn-gradient {
+  background: linear-gradient(90deg, #2563eb 0%, #7c3aed 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 8px 0 rgba(124,58,237,0.10);
+  transition: filter 0.2s, box-shadow 0.2s;
+}
+.btn:hover, .btn-gradient:hover {
+  filter: brightness(1.08) saturate(1.2);
+  box-shadow: 0 8px 24px rgba(124,58,237,0.13);
+}
+.btn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 1px 4px 0 rgba(124,58,237,0.08);
+}
+
+/* Add Task button polish */
+.btn-add-task {
+  background: linear-gradient(90deg, #2563eb 0%, #7c3aed 100%);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px 0 rgba(124,58,237,0.10);
+  transition: filter 0.2s, box-shadow 0.2s;
+}
+.btn-add-task:hover {
+  filter: brightness(1.1) saturate(1.3);
+  box-shadow: 0 8px 24px rgba(124,58,237,0.18);
+}
+
+/* Mic glowing pulse for overlay */
+.mic-glow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, #6366f1 0%, #2563eb 80%, transparent 100%);
+  border-radius: 50%;
+  padding: 2.5rem;
+  box-shadow: 0 0 32px 8px #6366f1, 0 0 0 0 #2563eb;
+  animation: micPulse 1.2s infinite alternate;
+}
+@keyframes micPulse {
+  0% { box-shadow: 0 0 32px 8px #6366f1, 0 0 0 0 #2563eb; }
+  100% { box-shadow: 0 0 48px 16px #6366f1, 0 0 0 12px #2563eb44; }
+}
+
+html.dark .mic-glow {
+  background: radial-gradient(circle, #7c3aed 0%, #2563eb 80%, transparent 100%);
+  box-shadow: 0 0 48px 16px #7c3aed, 0 0 0 0 #2563eb;
+}
+
+/* Transcript text for overlay */
+.voice-transcript {
+  color: #fff;
+  text-shadow: 0 2px 16px #000a, 0 1.5px 8px #6366f1aa;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.voice-transcript-secondary {
+  color: #8b949e;
 }
 
 @keyframes bgMove {
@@ -92,13 +192,13 @@ html.dark body {
   animation-delay: 6s;
 }
 html.dark .float-shape1 {
-  background: radial-gradient(circle, #0ea5e9 0%, #6366f1 100%);
+  background: radial-gradient(circle, #565869 0%, #444654 100%);
 }
 html.dark .float-shape2 {
-  background: radial-gradient(circle, #6366f1 0%, #0ea5e9 100%);
+  background: radial-gradient(circle, #444654 0%, #565869 100%);
 }
 html.dark .float-shape3 {
-  background: radial-gradient(circle, #14b8a6 0%, #0ea5e9 100%);
+  background: radial-gradient(circle, #565869 0%, #444654 100%);
 }
 @keyframes floatShape {
   0% { transform: translateY(0) scale(1); }
@@ -170,7 +270,7 @@ html.dark .glass {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-fill-color: transparent;
+  color: transparent;
   margin-bottom: 1.2rem;
   letter-spacing: -0.02em;
   animation: heroTitleIn 1.1s cubic-bezier(0.4,0,0.2,1);
@@ -213,7 +313,15 @@ html.dark .glass {
 
 /* Button styles */
 .btn {
-  @apply px-5 py-2 rounded-lg font-semibold bg-gradient-to-r from-sky-400 to-indigo-400 text-white shadow-lg transition-all duration-150;
+  padding: 1.25rem 0.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  background: linear-gradient(to right, rgb(56, 189, 248), rgb(99, 102, 241));
+  color: white;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
   box-shadow: 0 2px 8px 0 rgba(56,189,248,0.10);
   border: none;
   outline: none;
@@ -289,17 +397,18 @@ html.dark .hero-desc {
   color: #334155;
 }
 html.dark .chat-bubble {
-  background: rgba(30,41,59,0.92);
-  color: #f1f5f9;
-  border: 1.5px solid rgba(56,189,248,0.13);
+  background: #444654;
+  color: #ececf1;
+  border: 1px solid #565869;
 }
 html.dark .chat-bubble.user {
-  background: linear-gradient(90deg, #0ea5e9 10%, #6366f1 90%);
+  background: #343541;
+  border: 1px solid #565869;
   color: #fff;
 }
 html.dark .chat-bubble.assistant {
-  background: rgba(30,41,59,0.92);
-  color: #f1f5f9;
+  background: #444654;
+  color: #ececf1;
 }
 
 /* Animations */

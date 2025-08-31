@@ -1,3 +1,4 @@
+import { VoiceOverlay } from './components/VoiceOverlay';
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -22,6 +23,8 @@ import { SentimentChip } from './components/SentimentChip';
 import { Toast } from './components/Toast';
 import { DebugPanel } from './components/DebugPanel';
 import { SettingsModal } from './components/SettingsModal';
+import { WellnessTips } from './components/WellnessTips';
+import { SessionSummaryModal } from './components/SessionSummaryModal';
 import { Mic, Camera } from 'lucide-react';
 import { OutputEnvelope, TodoItem, Signals } from './types';
 import { v4 as uuidv4 } from 'uuid';
@@ -35,6 +38,9 @@ const queryClient = new QueryClient();
 
 
 function App() {
+  // Voice overlay state
+  const [showVoiceOverlay, setShowVoiceOverlay] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState("");
   // UI state
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string; audio?: string | null; signals?: Signals; ts?: string }>>([]);
   const [text, setText] = useState('');
@@ -51,6 +57,7 @@ function App() {
   const chunks = useRef<Blob[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('theme') as 'light' | 'dark') || 'light');
+  const [showSessionSummary, setShowSessionSummary] = useState(false);
 
   // Todo state
   const { data: todos = [], refetch: refetchTodos } = useQuery<TodoItem[]>({
@@ -84,6 +91,18 @@ function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === ',') {
         e.preventDefault();
         setShowSettings(true);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        setTheme(theme => theme === 'dark' ? 'light' : 'dark');
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        setShowSessionSummary(true);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        setShowVoiceOverlay(v => !v);
       }
     };
     window.addEventListener('keydown', handler);
@@ -253,14 +272,15 @@ function App() {
               <span className="text-sm text-slate-500" aria-label="session-label">Session: s1</span>
             </div>
             <div className="flex items-center gap-2">
+              <button className="btn" onClick={() => setShowSessionSummary(true)} aria-label="Show session summary">Summary (Ctrl+S)</button>
               <button className="btn" onClick={() => setShowSettings(true)} aria-haspopup="dialog" aria-controls="settings-modal">Settings</button>
-              <button className="btn" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title="Toggle theme">{theme === 'dark' ? 'Light' : 'Dark'}</button>
+              <button className="btn" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title="Toggle theme (Ctrl+T)">{theme === 'dark' ? 'Light' : 'Dark'}</button>
               <button className="btn" onClick={privacyClear} title="Clear local conversation">Privacy</button>
             </div>
           </header>
-          <main className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-8 p-6">
+          <main className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-8 p-6">
             {/* Chat Section */}
-            <section className="md:col-span-2 flex flex-col rounded-3xl glass soft-shadow p-0 overflow-hidden">
+            <section className="md:col-span-2 lg:col-span-3 flex flex-col rounded-3xl glass soft-shadow p-0 overflow-hidden">
               <div className="flex flex-wrap gap-3 items-center px-6 py-4 border-b border-white/30 bg-white/60">
                 <select aria-label="Language" className="border rounded px-2 py-1" value={lang} onChange={e => setLang(e.target.value)}>
                   <option value="en">English</option>
@@ -289,7 +309,19 @@ function App() {
                 </AnimatePresence>
               </div>
               <div className="px-6 py-4 border-t border-white/30 bg-white/60 flex flex-wrap gap-3 items-center">
-                <Composer value={text} onChange={setText} onSend={send} />
+                <Composer value={text} onChange={setText} onSend={send} onVoice={() => setShowVoiceOverlay(true)} />
+          <VoiceOverlay
+            transcript={voiceTranscript}
+            listening={showVoiceOverlay}
+            onSend={() => {
+              if (voiceTranscript.trim()) {
+                send(voiceTranscript);
+                setVoiceTranscript("");
+                setShowVoiceOverlay(false);
+              }
+            }}
+            onClose={() => setShowVoiceOverlay(false)}
+          />
                 <button
                   className={`btn-icon mic-btn ${recording ? 'bg-emerald-600 text-white animate-pulse' : 'bg-white/80 text-emerald-600'}`}
                   onClick={() => (recording ? stopRec() : startRec(false))}
@@ -301,15 +333,21 @@ function App() {
                 </button>
               </div>
             </section>
-            {/* Todo Panel */}
-            <div id="todo-panel" className="md:col-span-1">
-              <TodoPanel
-                todos={todos}
-                onCreate={handleCreateTodo}
-                onUpdate={handleUpdateTodo}
-                onDelete={handleDeleteTodo}
-                onSnooze={handleSnooze}
-              />
+            {/* Side Panel */}
+            <div className="md:col-span-2 lg:col-span-1 space-y-6">
+              {/* Wellness Tips Panel */}
+              <WellnessTips />
+
+              {/* Todo Panel */}
+              <div id="todo-panel">
+                <TodoPanel
+                  todos={todos}
+                  onCreate={handleCreateTodo}
+                  onUpdate={handleUpdateTodo}
+                  onDelete={handleDeleteTodo}
+                  onSnooze={handleSnooze}
+                />
+              </div>
             </div>
           </main>
 
@@ -342,6 +380,14 @@ function App() {
 
           {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
           {debug && <DebugPanel logs={[JSON.stringify(debug, null, 2)]} onClear={() => setDebug(null)} />}
+
+          {showSessionSummary && (
+            <SessionSummaryModal
+              messages={messages}
+              todos={todos}
+              onClose={() => setShowSessionSummary(false)}
+            />
+          )}
         </>
       )}
     </div>
